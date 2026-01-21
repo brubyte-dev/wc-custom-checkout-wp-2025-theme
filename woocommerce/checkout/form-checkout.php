@@ -157,31 +157,13 @@ $order_button_text = apply_filters( 'woocommerce_order_button_text', __( 'Place 
 					</div>
 					
 					<!-- Payment Methods -->
-					<div class="checkout-section payment-methods">
-						<h3><?php esc_html_e( 'Payment Methods', 'woocommerce' ); ?></h3>
-						<?php do_action( 'woocommerce_checkout_payment' ); ?>
-					</div>
-
-					<!-- Place Order Button -->
-					<div class="checkout-section place-order">
-						<!-- Terms and Conditions -->
-						<div class="terms-and-conditions-wrapper">
-							<label class="terms-checkbox-label">
-								<input type="checkbox" name="terms" id="terms" class="terms-checkbox" required />
-								<span class="terms-text">
-									I have read and agree to the website 
-									<a href="<?php echo esc_url( get_permalink( wc_get_page_id( 'terms' ) ) ); ?>" target="_blank" class="terms-link">Terms and Conditions</a>
-									and 
-									<a href="<?php echo esc_url( home_url( '/rules-restrictions/' ) ); ?>" target="_blank" class="terms-link">Rules & Restrictions</a>
-								</span>
-							</label>
-							<p class="terms-notice">* You must accept the terms and conditions to place your order.</p>
+					<div id="payment-methods-wrapper">
+						<div class="checkout-section payment-methods">
+							<?php if ( WC()->cart->get_total( 'edit' ) > 0 ) : ?>
+								<h3><?php esc_html_e( 'Payment Methods', 'woocommerce' ); ?></h3>
+							<?php endif; ?>
+							<?php woocommerce_checkout_payment(); ?>
 						</div>
-
-						<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
-						<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="button alt" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); ?>
-						<?php do_action( 'woocommerce_review_order_after_submit' ); ?>
-						<?php wp_nonce_field( 'woocommerce-process_checkout', 'woocommerce-process-checkout-nonce' ); ?>
 					</div>
 					<script type="text/javascript">
 						var productVariationsData = <?php echo json_encode( $all_variations_data ); ?>;

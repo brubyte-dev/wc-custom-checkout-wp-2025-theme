@@ -130,10 +130,13 @@ if ( ! function_exists( 'twentytwentyfive_enqueue_checkout_scripts' ) ) :
 	function twentytwentyfive_enqueue_checkout_scripts() {
 		// Only load on checkout page
 		if ( is_checkout() ) {
+			// Ensure WooCommerce checkout script is loaded (required for payment method handling)
+			wp_enqueue_script( 'wc-checkout' );
+			
 			wp_enqueue_script(
 				'twentytwentyfive-checkout',
 				get_parent_theme_file_uri( 'assets/js/checkout.js' ),
-				array( 'jquery' ), // Dependencies
+				array( 'jquery', 'wc-checkout' ), // Add wc-checkout as dependency
 				wp_get_theme()->get( 'Version' ),
 				true // Load in footer
 			);
@@ -251,52 +254,8 @@ endif;
 /**
  * CUSTOM PAYMENT TEMPLATE WITHOUT PLACE ORDER BUTTON
  */
-function custom_checkout_payment_template() {
-    if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->payment_gateways() ) {
-        return;
-    }
-
-    if ( WC()->cart->needs_payment() ) {
-        $available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
-
-        if ( ! empty( $available_gateways ) ) {
-            $first_gateway = true;
-            // Payment Methods
-            echo '<div class="payment-methods-list">';
-            foreach ( $available_gateways as $gateway ) {
-                // Ensure at least one payment method is selected
-                if ( $first_gateway && ! $gateway->chosen ) {
-                    $gateway->chosen = true;
-                    $first_gateway = false;
-                }
-                ?>
-                <div class="payment-method">
-                    <input id="payment_method_<?php echo esc_attr( $gateway->id ); ?>" type="radio" class="input-radio" name="payment_method" value="<?php echo esc_attr( $gateway->id ); ?>" <?php checked( $gateway->chosen, true ); ?> />
-                    <label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>">
-                        <?php echo $gateway->get_title(); ?>
-                        <?php echo $gateway->get_icon(); ?>
-                    </label>
-                    <?php if ( $gateway->has_fields() || $gateway->get_description() ) : ?>
-                        <div class="payment-method-description" <?php if ( ! $gateway->chosen ) : ?>style="display:none;"<?php endif; ?>>
-                            <?php $gateway->payment_fields(); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <?php
-            }
-            echo '</div>';
-        }
-    }
-}
-
 /**
- * REPLACE DEFAULT PAYMENT ACTION WITH CUSTOM ONE
- */
-remove_action( 'woocommerce_checkout_payment', 'woocommerce_checkout_payment', 20 );
-add_action( 'woocommerce_checkout_payment', 'custom_checkout_payment_template', 20 );
-
-/**
- * REMOVE PAYMENT FROM ORDER REVIEW (so it only shows in second column)
+ * REMOVE PAYMENT FROM ORDER REVIEW (so it only shows in billing section)
  */
 remove_action( 'woocommerce_checkout_order_review', 'woocommerce_checkout_payment', 20 );
 
@@ -542,6 +501,20 @@ function custom_order_review_fragments( $fragments ) {
     <?php
     $fragments['.woocommerce-checkout-review-order-table'] = ob_get_clean();
     
+    // Update payment section wrapper - always show it, WooCommerce handles payment method visibility
+    ob_start();
+    ?>
+    <div id="payment-methods-wrapper">
+        <div class="checkout-section payment-methods">
+            <?php if ( WC()->cart->get_total( 'edit' ) > 0 ) : ?>
+                <h3><?php esc_html_e( 'Payment Methods', 'woocommerce' ); ?></h3>
+            <?php endif; ?>
+            <?php woocommerce_checkout_payment(); ?>
+        </div>
+    </div>
+    <?php
+    $fragments['#payment-methods-wrapper'] = ob_get_clean();
+    
     return $fragments;
 }
 
@@ -597,3 +570,20 @@ add_action( 'template_redirect', 'auto_add_product_to_cart_on_checkout', 5 );
 add_action( 'wp_footer', function () {
     echo '<!-- WooCommerce prop firm filters active -->';
 });
+
+add_filter( 'woocommerce_store_api_checkout_privacy_policy_text', '__return_empty_string' );
+add_filter( 'woocommerce_checkout_privacy_policy_text', '__return_empty_string' );
+add_filter( 'woocommerce_get_terms_and_conditions_checkbox_text', 'custom_terms_checkbox_text' );
+function custom_terms_checkbox_text( $text ) {
+
+    $terms_url  = get_permalink( wc_get_page_id( 'terms' ) );
+    $rules_url  = site_url( '/rules-restrictions/' ); // change to your page slug
+
+    $text = sprintf(
+        'I have read and agree to the <a href="%s" target="_blank">terms and conditions</a> & <a href="%s" target="_blank">rules & restrictions</a>',
+        esc_url( $terms_url ),
+        esc_url( $rules_url )
+    );
+
+    return $text;
+}

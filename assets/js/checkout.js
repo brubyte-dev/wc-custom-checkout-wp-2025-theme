@@ -134,8 +134,8 @@ jQuery(document).ready(function($) {
 						});
 					}, 3000);
 
-					// Trigger checkout update to refresh totals
-					$('body').trigger('update_checkout', { update_shipping_method: false });
+					// Trigger checkout update to refresh totals AND payment methods
+					$(document.body).trigger('update_checkout');
 
 					console.log('Coupon applied successfully');
 				} else {
@@ -173,10 +173,53 @@ jQuery(document).ready(function($) {
 		$('.coupon-input').removeClass('has-error');
 	});
 
-	// Handle payment method selection
-	$('input[name="payment_method"]').on('change', function() {
-		$('.payment-method-description').hide();
-		$(this).closest('.payment-method').find('.payment-method-description').show();
+	// Handle coupon removal
+	$(document).off('click.coupon_removal').on('click.coupon_removal', '.woocommerce-remove-coupon', function(e) {
+		e.preventDefault();
+		
+		var couponCode = $(this).data('coupon');
+		var $container = $(this).closest('.woocommerce-checkout-review-order');
+		
+		if (!couponCode) {
+			return false;
+		}
+		
+		// Show loading state
+		$container.addClass('processing').block({
+			message: null,
+			overlayCSS: {
+				background: '#fff',
+				opacity: 0.6
+			}
+		});
+		
+		$.ajax({
+			type: 'POST',
+			url: wc_checkout_params.wc_ajax_url.toString().replace('%%endpoint%%', 'remove_coupon'),
+			data: {
+				security: wc_checkout_params.remove_coupon_nonce,
+				coupon: couponCode
+			},
+			success: function(code) {
+				$('.woocommerce-error, .woocommerce-message, .is-error, .is-success').remove();
+				$container.removeClass('processing').unblock();
+				
+				if (code) {
+					$('form.woocommerce-checkout').before(code);
+				}
+				
+				// Trigger checkout update
+				$(document.body).trigger('removed_coupon_in_checkout', [couponCode]);
+				$(document.body).trigger('update_checkout', { update_shipping_method: false });
+			},
+			error: function() {
+				$container.removeClass('processing').unblock();
+				// Show error message
+				$('form.woocommerce-checkout').before('<div class="woocommerce-error">Failed to remove coupon. Please try again.</div>');
+			}
+		});
+		
+		return false;
 	});
 
 	// Terms and conditions validation
