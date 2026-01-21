@@ -31,11 +31,126 @@ jQuery(document).ready(function($) {
 	// Listen for checkout updates to unblock and ensure button visibility
 	$(document.body).on('updated_checkout', function() {
 		$('.woocommerce-checkout-review-order').unblock();
+
+		// Move any AJAX validation notices to our custom location
+		var $ajaxNotices = $('.woocommerce-NoticeGroup-updateOrderReview');
+		if ($ajaxNotices.length > 0) {
+			// Move notices to our custom location inside the checkout container
+			var $customNoticeContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+			if ($customNoticeContainer.length === 0) {
+				// Create our custom notice container if it doesn't exist
+				$('.checkout-container').prepend('<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"></div>');
+				$customNoticeContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+			}
+
+			// Move the notices and remove the original container
+			$customNoticeContainer.html($ajaxNotices.html());
+			$ajaxNotices.remove();
+		}
 	});
 
 	// Ensure button visibility when payment method changes
 	$(document.body).on('payment_method_selected', function() {
 		//ensurePlaceOrderButtonVisible();
+	});
+
+	// Validate terms checkbox before form submission
+	$('form.checkout').on('submit', function(e) {
+		console.log('Form submit intercepted - checking terms checkbox');
+
+		var $termsCheckbox = $('#terms');
+		console.log('Terms checkbox found:', $termsCheckbox.length);
+		console.log('Terms checkbox checked:', $termsCheckbox.is(':checked'));
+
+		if ($termsCheckbox.length > 0 && !$termsCheckbox.is(':checked')) {
+			console.log('Terms not checked - preventing submission');
+
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+
+			// Add error message
+			var errorMessage = 'Please read and accept the terms and conditions to proceed with your order.';
+			var $errorContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+
+			if ($errorContainer.length === 0) {
+				$('.checkout-container').prepend('<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"></div>');
+				$errorContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+			}
+
+			$errorContainer.html('<div class="woocommerce-error"><ul><li>' + errorMessage + '</li></ul></div>');
+
+			// Scroll to error
+			$('html, body').animate({
+				scrollTop: $errorContainer.offset().top - 100
+			}, 500);
+
+			return false;
+		}
+
+		console.log('Terms checked - allowing submission');
+	});
+
+	// Also prevent submission on place order button click - run before WooCommerce handlers
+	$(document.body).on('click', '#place_order', function(e) {
+		console.log('Place order button clicked - checking terms');
+
+		var $termsCheckbox = $('#terms');
+		if ($termsCheckbox.length > 0 && !$termsCheckbox.is(':checked')) {
+			console.log('Terms not checked - preventing place order click');
+
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+
+			// Add error message
+			var errorMessage = 'Please read and accept the terms and conditions to proceed with your order.';
+			var $errorContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+
+			if ($errorContainer.length === 0) {
+				$('.checkout-container').prepend('<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"></div>');
+				$errorContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+			}
+
+			$errorContainer.html('<div class="woocommerce-error"><ul><li>' + errorMessage + '</li></ul></div>');
+
+			// Scroll to error
+			$('html, body').animate({
+				scrollTop: $errorContainer.offset().top - 100
+			}, 500);
+
+			return false;
+		}
+
+		console.log('Terms checked - allowing place order');
+	});
+
+	// Also intercept WooCommerce's checkout_place_order event
+	$(document.body).on('checkout_place_order', function(e) {
+		console.log('WooCommerce checkout_place_order event - checking terms');
+
+		var $termsCheckbox = $('#terms');
+		if ($termsCheckbox.length > 0 && !$termsCheckbox.is(':checked')) {
+			console.log('Terms not checked - preventing WooCommerce checkout_place_order');
+
+			// Add error message
+			var errorMessage = 'Please read and accept the terms and conditions to proceed with your order.';
+			var $errorContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+
+			if ($errorContainer.length === 0) {
+				$('.checkout-container').prepend('<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"></div>');
+				$errorContainer = $('.checkout-container .woocommerce-NoticeGroup-checkout');
+			}
+
+			$errorContainer.html('<div class="woocommerce-error"><ul><li>' + errorMessage + '</li></ul></div>');
+
+			// Scroll to error
+			$('html, body').animate({
+				scrollTop: $errorContainer.offset().top - 100
+			}, 500);
+
+			return false;
+		}
 	});
 
 	// Handle coupon application
@@ -228,23 +343,23 @@ jQuery(document).ready(function($) {
 
 		if (!termsChecked) {
 			// Scroll to terms section
-			$('.terms-and-conditions-wrapper').addClass('terms-error');
+			$('.woocommerce-terms-and-conditions-wrapper').addClass('terms-error');
 
 			// Add error message if not already present
 			if (!$('.terms-error-message').length) {
-				$('.terms-and-conditions-wrapper').append('<p class="terms-error-message">* Please accept the terms and conditions to continue.</p>');
+				$('.woocommerce-terms-and-conditions-wrapper').append('<p class="terms-error-message">Please read and accept the terms and conditions to proceed with your order.</p>');
 			}
 
 			// Scroll to the error
 			$('html, body').animate({
-				scrollTop: $('.terms-and-conditions-wrapper').offset().top - 100
+				scrollTop: $('.woocommerce-terms-and-conditions-wrapper').offset().top - 100
 			}, 500);
 
 			return false;
 		}
 
 		// Remove error styling if checked
-		$('.terms-and-conditions-wrapper').removeClass('terms-error');
+		$('.woocommerce-terms-and-conditions-wrapper').removeClass('terms-error');
 		$('.terms-error-message').remove();
 
 		return true;
@@ -253,7 +368,7 @@ jQuery(document).ready(function($) {
 	// Remove error when checkbox is checked
 	$('#terms').on('change', function() {
 		if ($(this).is(':checked')) {
-			$('.terms-and-conditions-wrapper').removeClass('terms-error');
+			$('.woocommerce-terms-and-conditions-wrapper').removeClass('terms-error');
 			$('.terms-error-message').remove();
 		}
 	});
