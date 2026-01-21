@@ -134,8 +134,8 @@ jQuery(document).ready(function($) {
 						});
 					}, 3000);
 
-					// Trigger checkout update to refresh totals AND payment methods
-					$(document.body).trigger('update_checkout');
+					// Trigger checkout update to refresh totals
+					$('body').trigger('update_checkout', { update_shipping_method: false });
 
 					console.log('Coupon applied successfully');
 				} else {

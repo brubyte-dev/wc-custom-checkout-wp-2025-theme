@@ -542,20 +542,6 @@ function custom_order_review_fragments( $fragments ) {
     <?php
     $fragments['.woocommerce-checkout-review-order-table'] = ob_get_clean();
     
-    // Update payment section wrapper (shows/hides payment methods based on cart total)
-    ob_start();
-    ?>
-    <div id="payment-methods-wrapper">
-        <?php if ( WC()->cart->get_total( 'edit' ) > 0 ) : ?>
-            <div class="checkout-section payment-methods">
-                <h3><?php esc_html_e( 'Payment Methods', 'woocommerce' ); ?></h3>
-                <?php do_action( 'woocommerce_checkout_payment' ); ?>
-            </div>
-        <?php endif; ?>
-    </div>
-    <?php
-    $fragments['#payment-methods-wrapper'] = ob_get_clean();
-    
     return $fragments;
 }
 

@@ -157,13 +157,9 @@ $order_button_text = apply_filters( 'woocommerce_order_button_text', __( 'Place 
 					</div>
 					
 					<!-- Payment Methods -->
-					<div id="payment-methods-wrapper">
-						<?php if ( WC()->cart->get_total( 'edit' ) > 0 ) : ?>
-							<div class="checkout-section payment-methods">
-								<h3><?php esc_html_e( 'Payment Methods', 'woocommerce' ); ?></h3>
-								<?php do_action( 'woocommerce_checkout_payment' ); ?>
-							</div>
-						<?php endif; ?>
+					<div class="checkout-section payment-methods">
+						<h3><?php esc_html_e( 'Payment Methods', 'woocommerce' ); ?></h3>
+						<?php do_action( 'woocommerce_checkout_payment' ); ?>
 					</div>
 
 					<!-- Place Order Button -->
